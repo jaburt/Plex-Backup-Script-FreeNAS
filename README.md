@@ -9,7 +9,6 @@ This script (plexbackup.sh) when run will stop the Plex Media Server, perform so
 
 There are four variables at the beginning of the script which you will need to complete to personalise the script for your FreeNAS Server:
 
-Plex Media Server database folders (plexMSDatabase), the Jail name (plexMSJailName), location where you want your backup saved (backupLocation), and your email address (email).
+The Jail name (plexMSJailName), location where you want your backup saved (backupLocation), and your email address (email).
 
-This script is for the Plex Pass version of Plex Media Server, if you are not a Plex Pass user, then you need to edit lines 28 and 
-106 and deleted the the text: _plexpass
+This script is for the Plex Pass version of Plex Media Server, if you are not a Plex Pass user, then you follo the instructions in the script to change this (liunes 28-32).
