@@ -1,31 +1,45 @@
 #!/bin/bash
 
 ### Notes ###
-## Script to backup the Plex configuration files. ##
-## Will also verify the integrity of the sql databases. ##
-## Can be run from the main FreeNAS sever, no need to be within the Jails. ##
+## Script to backup the Plex Media Server databases and configuration files, it will 
+## also verify the integrity of the SQL databases. It runs from the main FreeNAS sever, 
+## so no need to be within the Jails.  The script is based on FreeNAS v11.2-U2.1 or  
+## greater with iocage Jails.
 ### End ###
 
 ### User defined variables ###
-## Plex database & configuration location.  The trailing slash is NOT needed. ##
-## This is the absolute location within the Jail, from the FreeNAS server. ##
-## Note: Default location for a clean install in a FreeNAS v11.0-U2 Jail, ##
-##       is: /usr/local/plexdata/Plex Media Server ##
-plexMSDatabase="/mnt/iocage/jails/PlexMS/root/usr/local/plexdata-plexpass/Plex Media Server"
+## What's the name of the Jail?
 plexMSJailName="PlexMS"
 
-## Backup Location.  The trailing slash is NOT needed. ##
-## This is the absolute location within the Jail, from the FreeNAS server, ##
-## ideally in a separate dataset from the Plex Jail datasets. ##
+## Backup Location.  The trailing slash is NOT needed. This is the absolute location
+## within the Jail, from the FreeNAS server, ideally in a separate dataset from the Plex
+## Jail dataset.
 backupLocation="/mnt/tank/Sysadmin/plex_backup"
 
-## Your email, so the script can send a report at the end. ##
-email="YOUR_EMAIL_ADDRESS"
+## Your email, so the script can send a report at the end.
+email="freenas@jaburt.com"
 ### End ###
 
+### Paths ###
+## This script assumes that iocage has been enabled in the default position of: /mnt/iocage
+## If this is not the case, edit the variable "iocageloc". The trailing slash is NOT needed.
+iocageLoc="/mnt/iocage"
+
+## This script also assumes that Plex Media Server has been installed via "ports" and is 
+## installed in the default directories.  If this is not the case than you will need to edit 
+## the variable "plexMSInstall" accordingly.  The script is written for the Plex Pass edition
+## of Plex, if you don't have a Plex Pass, then delete "-plexpass" and "_plexpass" from the
+## variables below:
+plexMSInstall="/usr/local/plexdata-plexpass/Plex Media Server"
+serviceName=plexmediaserver_plexpass
+
+## Calculate full path
+plexPath="$iocageLoc/jails/$plexMSJailName/root$plexMSInstall"
+### Paths ###
+
 ### Prepare ###
-## Stop Plex. ##
-iocage exec "${plexMSJailName}" service plexmediaserver_plexpass stop
+## Stop Plex.
+iocage exec "${plexMSJailName}" service "${serviceName}" stop
 ##Create .tar.gz filename##
 tarfile="tempworking.tar.gz"
 filename="$(date "+plex_backup_%Y-%m-%d")"
@@ -42,22 +56,21 @@ filename="$(date "+plex_backup_%Y-%m-%d")"
 ### End ###
 
 ### Check for any corruptions in the database files. ###
-
-# Before we can do the "pragma integrity_check", we need to do some pre-work to the database file, #
-# as per the notes on https://support.plex.tv/articles/201100678-repair-a-corrupt-database/ #
-cd "${plexMSDatabase}/Plug-in Support/Databases/" || exit
+## Before we can do the "pragma integrity_check", we need to do some pre-work to the database file, 
+## as per the notes on https://support.plex.tv/articles/201100678-repair-a-corrupt-database/ 
+cd "${plexPath}/Plug-in Support/Databases/" || exit
 cp com.plexapp.plugins.library.db com.plexapp.plugins.library.db.original
 sqlite3 com.plexapp.plugins.library.db "DROP index 'index_title_sort_naturalsort'"
 sqlite3 com.plexapp.plugins.library.db "DELETE from schema_migrations where version='20180501000000'"
 cp com.plexapp.plugins.library.blobs.db com.plexapp.plugins.library.blobs.db.original
 sqlite3 com.plexapp.plugins.library.blobs.db "DROP index 'index_title_sort_naturalsort'"
 sqlite3 com.plexapp.plugins.library.blobs.db "DELETE from schema_migrations where version='20180501000000'"
-# Pre-work complete #
+## Pre-work complete
 
-## Checking PlexMS databases. ##
-## Checking com.plexapp.plugins.library.db. ##
+## Checking PlexMS databases.
+## Checking com.plexapp.plugins.library.db.
 
-if ! [ "$(sqlite3 "${plexMSDatabase}/Plug-in Support/Databases/com.plexapp.plugins.library.db" "pragma integrity_check;")" = "ok" ]; then
+if ! [ "$(sqlite3 "${plexPath}/Plug-in Support/Databases/com.plexapp.plugins.library.db" "pragma integrity_check;")" = "ok" ]; then
 	(
 		echo "<b>Warning</b>: com.plexapp.plugins.library.db FAILED the sqlite3 pragma integrity_check!" >> /tmp/plexbackup.log
 	) 
@@ -68,8 +81,8 @@ else
 fi
 echo -e "\\r\\n" >> /tmp/plexbackup.log
 	
-## Checking com.plexapp.plugins.library.blobs.db. ##
-if ! [ "$(sqlite3 "${plexMSDatabase}/Plug-in Support/Databases/com.plexapp.plugins.library.blobs.db" "pragma integrity_check;")" = "ok" ]; then
+## Checking com.plexapp.plugins.library.blobs.db.
+if ! [ "$(sqlite3 "${plexPath}/Plug-in Support/Databases/com.plexapp.plugins.library.blobs.db" "pragma integrity_check;")" = "ok" ]; then
 	(
 		echo "<b>Warning</b>: com.plexapp.plugins.library.blobs.db FAILED the sqlite3 pragma integrity_check!" >> /tmp/plexbackup.log
 	)
@@ -80,8 +93,8 @@ else
 fi
 echo -e "\\r\\n" >> /tmp/plexbackup.log
 	
-## Checking com.plexapp.dlna.db. ##
-if ! [ "$(sqlite3 "${plexMSDatabase}/Plug-in Support/Databases/com.plexapp.dlna.db" "pragma integrity_check;")" = "ok" ]; then
+## Checking com.plexapp.dlna.db.
+if ! [ "$(sqlite3 "${plexPath}/Plug-in Support/Databases/com.plexapp.dlna.db" "pragma integrity_check;")" = "ok" ]; then
 	(
 		echo "<b>Warning</b>: com.plexapp.dlna.db FAILED the sqlite3 pragma integrity_check!" >> /tmp/plexbackup.log
 	) 
@@ -94,16 +107,15 @@ echo -e "\\r\\n" >> /tmp/plexbackup.log
 ### End ###
 
 ### Creation of backup.tar.gz files. ###
-## The tar file holds all the PlexMS files needed for a restore  ##
-## It excludes the cache folder for PlexMS, as this is not needed and it saves an ##
-## awful lot of space! ##
+## The tar file holds all the PlexMS files needed for a restore.  It excludes the cache folder for PlexMS, 
+## as this is not needed and it saves an awful lot of space!
 cd /tmp || exit
-tar --exclude="${plexMSDatabase}/Cache/" -czf "${tarfile}" "plexbackup.log" "${plexMSDatabase}/"
+tar --exclude="${plexPath}/Cache/" -czf "${tarfile}" "plexbackup.log" "${plexPath}/"
 ### End ###
 
 ### Re-start services ###
-## Restart Plex. ##
-iocage exec "${plexMSJailName}" service plexmediaserver_plexpass start
+## Restart Plex.
+iocage exec "${plexMSJailName}" service "${serviceName}" start
 
 ### Copy tar file to backup location. ###
 cp "${tarfile}" "${backupLocation}/${filename}.tar.gz"
@@ -128,10 +140,10 @@ cp "${tarfile}" "${backupLocation}/${filename}.tar.gz"
 ### End ###
 
 ### Send email ###
-## Send the email. ##
+## Send the email.
 sendmail -t < /tmp/plexbackup.eml
 
-## Remove the temp files. ##
+## Remove the temp files.
 rm "/tmp/${tarfile}"
 rm /tmp/plexbackup.log
 rm /tmp/plexbackup.eml
