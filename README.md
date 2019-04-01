@@ -1,5 +1,5 @@
 # Plex-Backup-Script-FreeNAS
-A FreeBSD bash script to automate the backup of Plex Media Server's configuration files and databases.
+A FreeBSD bash script to automate the backup of Plex Media Server's [Plex Pass] configuration files and databases.
 
 It’s recommended that you backup your Plex Media Server databases and configuration files, and I have created a script (plexbackup.sh) to automate this; see the below for the script.
 
