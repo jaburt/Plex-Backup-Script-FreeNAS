@@ -17,7 +17,7 @@ plexMSJailName="PlexMS"
 backupLocation="/mnt/tank/Sysadmin/plex_backup"
 
 ## Your email, so the script can send a report at the end.
-email="freenas@jaburt.com"
+email="your@email.address"
 ### End ###
 
 ### Paths ###
