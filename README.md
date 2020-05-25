@@ -7,9 +7,10 @@ You need to create a cron job via the Tasks section of the FreeNAS GUI which run
 
 This script (plexbackup.sh) when run will stop the Plex Media Server, perform some database integrity checks, and backup the databases and configuration files to a location on your FreeNAS server.  The script finishes with an email status update, which includes the status of the database checks.
 
-There are four variables at the beginning of the script which you will need to complete to personalise the script for your FreeNAS Server: 
+There are five variables at the beginning of the script which you will need to complete to personalise the script for your FreeNAS Server: 
 
-  plexMSJailName 		The Plex Media Server Jail name.
-  backupDestination	Destination where you want your backup file saved.
-  beta 				      Are you using the BETA version of Plex (yes/no)?
-  your_email 			  Your email address (defaults to root)
+*	plexMSJailName 		The Plex Media Server Jail name.
+*	backupDestination	Destination where you want your backup file saved.
+*	beta 				      Are you using the BETA version of Plex (yes/no)?
+*	keepBackups			  Amount of backup archive files to keep (rest will be deleted).
+*	your_email 			  Your email address (defaults to root)
