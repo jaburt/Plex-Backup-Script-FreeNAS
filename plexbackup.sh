@@ -14,8 +14,8 @@
 
 ### Change Log ###
 # 25/05/2020: A reworking of the code, to support both plexmediaserver (Stable edition) 
-# and plexmediaserver_plexpass (BETA edition), as well as fixing some minor errors.
-#
+# and plexmediaserver_plexpass (BETA edition), as well as fixing some minor errors.  Will
+# also removed old backup archives based on the "keepBackups" variable.
 #
 ### End ###
 
@@ -28,12 +28,13 @@
 # Upon completion the backup will be stored in your custom location and you will also 
 # receive an email with the status of the database check.
 #
-# There are four variables at the beginning of the script which you will need to complete 
+# There are five variables at the beginning of the script which you will need to complete 
 # to personalise the script for your FreeNAS Server: 
 #
 #	plexMSJailName 		The Plex Media Server Jail name.
 #	backupDestination	Destination where you want your backup file saved.
 #	beta 				Are you using the BETA version of Plex (yes/no)?
+#	keepBackups			Amount of backup archive files to keep (rest will be deleted).
 #	your_email 			Your email address (defaults to root)
 #
 # You may need to edit the following two variables if you are not using default install 
@@ -45,29 +46,32 @@
 ### End ###
 
 ### User defined variables ###
-## What's the name of the Jail where Plex Media Server is installed?
+# What's the name of the Jail where Plex Media Server is installed?
 plexMSJailName="PMS"
 
-## Backup Destination.  The trailing slash is NOT needed. This is the absolute location
-## within your FreeNAS server, ideally in a separate dataset from the Plex Jail dataset.
+# Backup Destination.  The trailing slash is NOT needed. This is the absolute location
+# within your FreeNAS server, ideally in a separate dataset from the Plex Jail dataset.
 backupDestination="/mnt/tank/Sysadmin/plex_backup"
 
-## Are you using the BETA version of Plex Media Server (true or false)?
+# Are you using the BETA version of Plex Media Server (yes or no)?
 beta="no"
 
-## Your email, so the script can send a report at the end.
+# How many backup achives do you want to keep in the "backupDestination"?
+keepBackups=10
+
+# Your email, so the script can send a report at the end.
 your_email=root
 ### End ###
 
 ### Paths (you may need to edit if you use non-default paths on your server) ###
-## This script assumes that iocage has been enabled in the default position of: /mnt/tank/iocage
-## If this is not the case, edit the variable "iocageloc". The trailing slash is NOT needed.
+# This script assumes that iocage has been enabled in the default position of: /mnt/tank/iocage
+# If this is not the case, edit the variable "iocageloc". The trailing slash is NOT needed.
 iocageLoc="/mnt/tank/iocage"
 
-## This script also assumes that Plex Media Server has been installed via "pkg" and is 
-## installed in the default directories.  If this is not the case than you will need to edit 
-## the variable "plexMSInstall" accordingly.  For example, you have mounted the Metadata in 
-## an external dataset.
+# This script also assumes that Plex Media Server has been installed via "pkg" and is 
+# installed in the default directories.  If this is not the case than you will need to edit 
+# the variable "plexMSInstall" accordingly.  For example, you have mounted the Metadata in 
+# an external dataset.
 if [[ ${beta} = "yes" ]] ; then
 	plexMSInstall="/usr/local/plexdata-plexpass/Plex Media Server"
 	serviceName=plexmediaserver_plexpass
@@ -90,7 +94,7 @@ plexPath="$iocageLoc/jails/$plexMSJailName/root$plexMSInstall"
 iocage exec "${plexMSJailName}" service "${serviceName}" stop
 
 # Prepare the .tar.gz filename
-tarfile="jab_plexbackup.tar.gz"
+tarfile="/tmp/jab_plexbackup.tar.gz"
 filename="$(date "+plex_backup_%Y-%m-%d")"
 
 # Prepare the logfile filename
@@ -135,7 +139,7 @@ else
 	)
 fi
 	
-## Checking com.plexapp.plugins.library.blobs.db.
+# Checking com.plexapp.plugins.library.blobs.db.
 if ! [ "$(sqlite3 "${plexPath}/Plug-in Support/Databases/com.plexapp.plugins.library.blobs.db" "pragma integrity_check;")" = "ok" ]; then
 	(
 		echo "Warning: com.plexapp.plugins.library.blobs.db FAILED the sqlite3 pragma integrity_check!" >> ${log_file}
@@ -146,7 +150,7 @@ else
 	) 
 fi
 	
-## Checking com.plexapp.dlna.db.
+# Checking com.plexapp.dlna.db.
 if ! [ "$(sqlite3 "${plexPath}/Plug-in Support/Databases/com.plexapp.dlna.db" "pragma integrity_check;")" = "ok" ]; then
 	(
 		echo "Warning: com.plexapp.dlna.db FAILED the sqlite3 pragma integrity_check!" >> ${log_file}
@@ -159,14 +163,14 @@ fi
 ### End ###
 
 ### Creation of backup.tar.gz files. ###
-## The tar file holds all the PlexMS files needed for a restore.  It excludes the cache folder for PlexMS, 
-## as this is not needed and it saves an awful lot of space!
+# The tar file holds all the PlexMS files needed for a restore.  It excludes the cache folder for PlexMS, 
+# as this is not needed and it saves an awful lot of space!
 cd /tmp || exit
 tar --exclude="${plexPath}/Cache/" -czf "${tarfile}" "${log_file}" "${plexPath}/"
 ### End ###
 
 ### Re-start services ###
-## Restart Plex.
+# Restart Plex.
 iocage exec "${plexMSJailName}" service "${serviceName}" start
 
 ### Copy tar file to backup location. ###
@@ -190,13 +194,20 @@ cp "${tarfile}" "${backupDestination}/${filename}.tar.gz"
 ### End ###
 
 ### Send email ###
-## Send the email.
+# Send the email.
 sendmail -t < ${emailFile}
+### End ###
 
-## Remove the temp files.
-rm "/tmp/${tarfile}"
+### Clean up
+# Remove tempfiles.
+rm ${tarfile}
 rm ${log_file}
 rm ${emailFile}
+
+# Delete old backups and only keep the newest "keepBackups"
+# cd to the correct directory before executing (for the paranoid!)
+cd ${backupDestination} || exit
+ls -1t | tail -n +$((${keepBackups}+1)) | xargs rm -f
 ### End ###
 
 ### Finished ###
