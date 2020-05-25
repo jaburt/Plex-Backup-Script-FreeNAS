@@ -9,8 +9,8 @@ This script (plexbackup.sh) when run will stop the Plex Media Server, perform so
 
 There are five variables at the beginning of the script which you will need to complete to personalise the script for your FreeNAS Server: 
 
-*	plexMSJailName 		The Plex Media Server Jail name.
-*	backupDestination	Destination where you want your backup file saved.
-*	beta 				      Are you using the BETA version of Plex (yes/no)?
-*	keepBackups			  Amount of backup archive files to keep (rest will be deleted).
-*	your_email 			  Your email address (defaults to root)
+*	plexMSJailName - The Plex Media Server Jail name.
+*	backupDestination - Destination where you want your backup file saved.
+*	beta - Are you using the BETA version of Plex (yes/no)?
+*	keepBackups - Amount of backup archive files to keep (rest will be deleted).
+*	your_email - Your email address (defaults to root)
