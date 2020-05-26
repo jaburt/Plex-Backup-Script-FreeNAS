@@ -162,6 +162,15 @@ else
 fi
 ### End ###
 
+### Add footer to email ###
+(
+	echo -e "\\r\\n"
+	echo "------------------------------------------------------------------------------------------------------------------------------"
+	echo "Please Note: The latest version of this script can be found at: https://www.github.com/jaburt"
+	echo "------------------------------------------------------------------------------------------------------------------------------"
+) >> ${log_file}
+### End ###
+
 ### Creation of backup.tar.gz files. ###
 # The tar file holds all the PlexMS files needed for a restore.  It excludes the cache folder for PlexMS, 
 # as this is not needed and it saves an awful lot of space!
