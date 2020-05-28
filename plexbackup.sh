@@ -16,7 +16,8 @@
 # 25/05/2020: A reworking of the code, to support both plexmediaserver (Stable edition) 
 # and plexmediaserver_plexpass (BETA edition), as well as fixing some minor errors.  Will
 # also removed old backup archives based on the "keepBackups" variable.
-#
+# 28/05/2020: Edited the ta line, to include env GZIP=-9, this way you will get maximum 
+# compression on the archive file (at the expense of a slower compression time).
 ### End ###
 
 ### Usage ###
@@ -175,7 +176,7 @@ fi
 # The tar file holds all the PlexMS files needed for a restore.  It excludes the cache folder for PlexMS, 
 # as this is not needed and it saves an awful lot of space!
 cd /tmp || exit
-tar --exclude="${plexPath}/Cache/" -czf "${tarfile}" "${log_file}" "${plexPath}/"
+env GZIP=-9 tar --exclude="${plexPath}/Cache/" -czf "${tarfile}" "${log_file}" "${plexPath}/"
 ### End ###
 
 ### Re-start services ###
